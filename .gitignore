@@ -1,10 +1,26 @@
-# Python-generated files
+# Python
 __pycache__/
-*.py[oc]
+*.py[cod]
+*.egg-info/
 build/
 dist/
-wheels/
-*.egg-info
 
-# Virtual environments
-.venv
+# Virtual environment
+.venv/
+
+# Models (large binaries, download them instead)
+models/*
+!models/.gitkeep
+
+# Generated cache
+.cache/
+
+# Your documents (may be private or copyrighted)
+data/*
+!data/.gitkeep
+
+# Secrets and editor/OS junk
+.env
+.vscode/
+.idea/
+.DS_Store

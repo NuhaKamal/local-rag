@@ -7,7 +7,10 @@ authors = [
     { name = "NuhaKamal", email = "76655580+NuhaKamal@users.noreply.github.com" }
 ]
 requires-python = ">=3.10"
-dependencies = []
+dependencies = [
+    "huggingface-hub>=2.2.0",
+    "llama-cpp-python>=0.3.36",
+]
 
 [project.scripts]
 local-rag = "local_rag:main"
