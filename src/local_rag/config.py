@@ -12,3 +12,8 @@ LLM_MODEL_PATH = Path("models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf")
 N_CTX = 2048           # context window in tokens (prompt + answer)
 MAX_NEW_TOKENS = 256   # room reserved for the answer
 TEMPERATURE = 0.1      # low = focused, repeatable
+
+# --- ingestion ---
+CHUNK_SIZE = 800    # characters per chunk
+OVERLAP = 100       # characters shared between neighbouring chunks
+INDEX_PATH = Path(".cache/index.json")   # the searchable index written by `ingest`

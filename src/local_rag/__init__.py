@@ -1,2 +1,1 @@
-def main() -> None:
-    print("Hello from local-rag!")
+"""Local RAG: ask questions about your PDFs with llama.cpp."""
