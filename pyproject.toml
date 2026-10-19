@@ -1,7 +1,7 @@
 [project]
 name = "local-rag"
 version = "0.1.0"
-description = "Add your description here"
+description = "Ask questions about your PDFs, fully offline, with llama.cpp and TinyLlama"
 readme = "README.md"
 authors = [
     { name = "NuhaKamal", email = "76655580+NuhaKamal@users.noreply.github.com" }
@@ -21,3 +21,11 @@ local-rag = "local_rag.cli:main"
 [build-system]
 requires = ["uv_build>=0.12.23,<0.13.0"]
 build-backend = "uv_build"
+
+[[tool.uv.index]]
+name = "llama-cpp-cpu"
+url = "https://abetlen.github.io/llama-cpp-python/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+llama-cpp-python = { index = "llama-cpp-cpu" }
