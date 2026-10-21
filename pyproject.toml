@@ -1,7 +1,7 @@
 [project]
-name = "local-rag"
+name = "rag-from-scratch"
 version = "0.1.0"
-description = "Ask questions about your PDFs, fully offline, with llama.cpp and TinyLlama"
+description = "A RAG (retrieval-augmented generation) pipeline built from scratch: llama.cpp, TinyLlama, fixed-size chunking, cosine similarity, a cache and a CLI"
 readme = "README.md"
 authors = [
     { name = "NuhaKamal", email = "76655580+NuhaKamal@users.noreply.github.com" }
@@ -16,7 +16,7 @@ dependencies = [
 ]
 
 [project.scripts]
-local-rag = "local_rag.cli:main"
+rag = "rag_from_scratch.cli:main"
 
 [build-system]
 requires = ["uv_build>=0.12.23,<0.13.0"]

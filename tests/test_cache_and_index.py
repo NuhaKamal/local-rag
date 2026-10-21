@@ -1,15 +1,15 @@
 import pytest
 
-from local_rag.chunker import Chunk
-from local_rag.embedder import EmbeddingCache
-from local_rag.index import load_index, save_index
+from rag_from_scratch.embedder import EmbeddingCache
+from rag_from_scratch.index import load_index, save_index
+from rag_from_scratch.models import Chunk
 
 
 def test_cache_key_is_deterministic_and_sensitive():
     key = EmbeddingCache.make_key("model-a", "hello")
     assert key == EmbeddingCache.make_key("model-a", "hello")
-    assert key != EmbeddingCache.make_key("model-b", "hello")   # different model
-    assert key != EmbeddingCache.make_key("model-a", "hello!")  # different text
+    assert key != EmbeddingCache.make_key("model-b", "hello")
+    assert key != EmbeddingCache.make_key("model-a", "hello!")
 
 
 def test_cache_counts_hits_and_misses(tmp_path):
@@ -31,9 +31,9 @@ def test_cache_survives_save_and_reload(tmp_path):
 def test_index_round_trip(tmp_path):
     chunks = [Chunk("some text", "a.pdf", 1, 0, "a.pdf:p1:c0")]
     save_index(chunks, [[0.1, 0.2]], "model.gguf", tmp_path / "index.json")
-    loaded_chunks, vecs, model = load_index(tmp_path / "index.json")
+    loaded_chunks, vectors, model = load_index(tmp_path / "index.json")
     assert loaded_chunks == chunks
-    assert vecs == [[0.1, 0.2]]
+    assert vectors == [[0.1, 0.2]]
     assert model == "model.gguf"
 
 

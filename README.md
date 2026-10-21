@@ -1,23 +1,32 @@
-# local-rag
+# Build a RAG algorithm from scratch
 
-Ask questions about your PDFs **fully offline**. No cloud and no GPU. A small
-retrieval-augmented generation (RAG) tool built from scratch with
-[llama.cpp](https://github.com/ggml-org/llama.cpp), TinyLlama and a nomic
-embedding model.
+Ask questions about your PDFs **fully offline**. No cloud and no GPU. A
+retrieval-augmented generation (RAG) pipeline built by hand, one small module per
+stage, with [llama.cpp](https://github.com/ggml-org/llama.cpp), TinyLlama and a
+nomic embedding model.
+
+> **This is Phase 1.** The goal is to understand every moving part: loading,
+> chunking, embedding, caching, similarity search, prompting and generation, all
+> written from scratch with no RAG framework. **Phase 2** (see the
+> [roadmap](#roadmap)) rebuilds it with more robust components: a vector
+> database, LangChain, a Streamlit interface and more.
 
 Example session (abridged):
 
 ```
-$ uv run local-rag ask "What does a functional movement mean?"
+$ uv run rag ask "What does a functional movement mean?"
+
+Question: What does a functional movement mean?
 
 Retrieved:
-  #1  p.45   score=0.71  book.pdf
-  ...
+  #1  p.47   score=0.79  book.pdf
+  #2  p.13   score=0.79  book.pdf
+  #3  p.14   score=0.78  book.pdf
 
 Answer:
-A functional movement means ... (p. 45)
+...
 
-Sources: book.pdf p.45, book.pdf p.12
+Sources: book.pdf p.47, book.pdf p.13, book.pdf p.14
 ```
 
 ## How it works
@@ -33,15 +42,32 @@ Sources: book.pdf p.45, book.pdf p.12
                                                    -> TinyLlama answer + page citations
 ```
 
-| Stage | Module | Idea |
-|---|---|---|
-| Load | `loader.py` | `pypdf` text per page, with file name and page number |
-| Chunk | `chunker.py` | Fixed-size windows with overlap; chunks never cross pages |
-| Embed | `embedder.py` | nomic vectors, cached by hash of (model, text) |
-| Index | `index.py` | Chunks and vectors saved together, with the embedding model name |
-| Retrieve | `retrieval/retriever.py` | Cosine similarity with `torch`, top-K |
-| Generate | `generation/generator.py` | Grounded prompt, score guard, TinyLlama via llama.cpp |
-| CLI | `cli.py` | `ingest` and `ask` commands |
+## Components
+
+Each module does one job, and **each can be run on its own** to show a sample
+input and its output:
+
+```
+uv run python -m rag_from_scratch.<module>
+```
+
+| Stage | Module | Input -> Output | Idea |
+|---|---|---|---|
+| Shared | `models.py` | (data shapes) | `Page` and `Chunk`, the only things modules pass to each other |
+| Settings | `config.py` | (constants) | Every setting in one place |
+| Logging | `logs.py` | -> a configured logger | Screen output at the chosen level, a full log in `.cache/rag.log` |
+| Load | `loader.py` | PDF -> `Page`s + metadata | `pypdf` text per page, with file name and page number |
+| Chunk | `chunker.py` | `Page`s -> `Chunk`s | Fixed-size windows with overlap; chunks never cross pages |
+| Embed | `embedder.py` | text -> 768 numbers | nomic vectors, cached by hash of (model, text) |
+| Index | `index.py` | chunks + vectors <-> JSON file | Saved together, with the embedding model name |
+| Retrieve | `retriever.py` | question -> `[(Chunk, score)]` | Cosine similarity with `torch`, top-K |
+| Generate | `generator.py` | question + hits -> answer | Grounded prompt, score guard, TinyLlama via llama.cpp |
+| CLI | `cli.py` | commands -> everything | The only module that knows the order of the stages |
+
+The modules are decoupled: they exchange only plain data (`Page`, `Chunk`,
+vectors, scores). The retriever accepts any object with an `.embed_query()`
+method, so it runs and is tested without a model. Only `cli.py` wires the stages
+together.
 
 ## Requirements
 
@@ -52,8 +78,8 @@ Sources: book.pdf p.45, book.pdf p.12
 ## Quick start
 
 ```bash
-git clone https://github.com/NuhaKamal/local-rag.git
-cd local-rag
+git clone https://github.com/NuhaKamal/rag-from-scratch.git
+cd rag-from-scratch
 uv sync
 
 # download the two models into models/
@@ -62,8 +88,8 @@ uv run hf download nomic-ai/nomic-embed-text-v1.5-GGUF nomic-embed-text-v1.5.Q4_
 
 # add a PDF, then build the index and ask
 cp your-file.pdf data/        # Windows: Copy-Item your-file.pdf data\
-uv run local-rag ingest
-uv run local-rag ask "your question here"
+uv run rag ingest
+uv run rag ask "your question here"
 ```
 
 The first `ingest` is slow because every chunk is embedded. Vectors are cached, so
@@ -73,43 +99,54 @@ later runs are fast.
 
 | Command | What it does |
 |---|---|
-| `local-rag ingest` | Index every PDF in `data/` |
-| `local-rag ingest a.pdf b.pdf` | Index specific PDFs (this **replaces** the previous index) |
-| `local-rag ingest --chunk-size 400 --overlap 50` | Change chunking |
-| `local-rag ask "question"` | Retrieve chunks and answer |
-| `local-rag ask "question" -k 5` | Retrieve 5 chunks instead of the default |
-| `local-rag ask "question" --no-llm` | Show retrieved chunks only (fast) |
-| `local-rag ask "question" --show-prompt` | Print the exact prompt sent to the model |
+| `rag ingest` | Index every PDF in `data/` |
+| `rag ingest a.pdf b.pdf` | Index specific PDFs (this **replaces** the previous index) |
+| `rag ingest --chunk-size 400 --overlap 50` | Change chunking |
+| `rag ask "question"` | Retrieve chunks and answer |
+| `rag ask "question" -k 5` | Retrieve 5 chunks instead of the default |
+| `rag ask "question" --no-llm` | Show retrieved chunks only (fast) |
+| `rag ask "question" --show-prompt` | Print the exact prompt sent to the model |
+| `rag ... -v` / `-vv` | Show progress messages / every detail |
+
+## Logging
+
+The answer is printed; what the program is *doing* is logged. By default only
+warnings reach the screen. Use `-v` for progress and `-vv` for every detail. The
+file `.cache/rag.log` always records everything, with timestamps, so you can
+inspect a run afterwards.
 
 ## Configuration
 
-Edit `src/local_rag/config.py`:
+Edit `src/rag_from_scratch/config.py`:
 
 | Setting | Default | Meaning |
 |---|---|---|
 | `CHUNK_SIZE` / `OVERLAP` | 800 / 100 | Characters per chunk / shared between neighbours |
 | `TOP_K` | 3 | Chunks given to the model |
-| `MIN_SCORE` | tuned per document | If the best chunk scores lower, the model is skipped and the answer is "I don't know" |
+| `MIN_SCORE` | 0.5 | If the best chunk scores lower, the model is skipped and the answer is "I don't know" |
 | `N_CTX`, `MAX_NEW_TOKENS`, `TEMPERATURE` | 2048, 256, 0.1 | Generation limits and randomness |
+| `LOG_LEVEL`, `LOG_PATH` | INFO, `.cache/rag.log` | Logging defaults |
 
 ## Project structure
 
 ```
-local-rag/
+rag-from-scratch/
 ├── pyproject.toml
 ├── uv.lock
 ├── data/                  your PDFs (git-ignored)
 ├── models/                GGUF models (git-ignored)
-├── .cache/                embedding cache and index (git-ignored)
-├── src/local_rag/
-│   ├── cli.py
-│   ├── config.py
-│   ├── loader.py
-│   ├── chunker.py
-│   ├── embedder.py
-│   ├── index.py
-│   ├── retrieval/retriever.py
-│   └── generation/generator.py
+├── .cache/                embedding cache, index and log (git-ignored)
+├── src/rag_from_scratch/
+│   ├── models.py          shared data shapes
+│   ├── config.py          settings
+│   ├── logs.py            logging setup
+│   ├── loader.py          PDF -> pages
+│   ├── chunker.py         pages -> chunks
+│   ├── embedder.py        text -> vectors (+ cache)
+│   ├── index.py           save / load the index
+│   ├── retriever.py       cosine similarity, top-K
+│   ├── generator.py       prompt + TinyLlama
+│   └── cli.py             the `rag` command
 └── tests/
 ```
 
@@ -123,16 +160,37 @@ local-rag/
   searchable knowledge base that `ask` reads.
 - **Guard against unanswerable questions.** Retrieval always returns K chunks, so
   a minimum score stops the model from improvising on irrelevant text.
+- **Decoupled stages.** Modules share data shapes, not each other's internals, so
+  any stage can be swapped (a different PDF reader, a vector database) by
+  changing one file.
 
 ## Limitations
 
-- TinyLlama is small: answers can be sloppy, and it may ignore the citation
-  instruction. Check the retrieved chunks and sources.
+- TinyLlama is small: answers can be sloppy, it may ignore the citation
+  instruction, and it sometimes repeats the context instead of answering. Check
+  the retrieved chunks and sources.
 - `pypdf` flattens tables and may include headers and footers in the text.
 - Scanned PDFs are not supported.
-- The index is one JSON file: fine for hundreds to a few thousand chunks, not for
-  millions.
+- The index is one JSON file and the search compares the question with every
+  chunk: fine for hundreds to a few thousand chunks, not for millions.
 - On Linux, PyPI's `torch` is a large CUDA build.
+
+## Roadmap
+
+**Phase 1 (this repository):** a RAG pipeline from scratch, to learn how every
+part works.
+
+**Phase 2 (next):** a more robust local RAG built from stronger components. These
+are plans, not features yet:
+
+- A **vector database** (for example Chroma or Qdrant) instead of a JSON file and
+  a full scan
+- **LangChain** to orchestrate the pipeline, compared against the hand-built one
+- A **Streamlit** chat interface
+- Better chunking (sentence or semantic), and re-ranking of retrieved chunks
+- A stronger local language model
+- Measuring answer quality with a small evaluation set
+- Better PDF parsing (tables, scanned pages with OCR)
 
 ## Tests
 

@@ -1,11 +1,11 @@
 import pytest
 
-from local_rag.chunker import chunk_pages, chunk_text
-from local_rag.loader import Page
+from rag_from_scratch.chunker import chunk_pages, chunk_text
+from rag_from_scratch.models import Page
 
 
 def test_hand_traced_example():
-    # the example we traced by hand in Phase 4: size 10, overlap 3 -> step 7
+    # size 10, overlap 3 -> step 7
     text = "abcdefghijklmnopqrstuvwxy"
     assert chunk_text(text, chunk_size=10, overlap=3) == [
         "abcdefghij", "hijklmnopq", "opqrstuvwx", "vwxy",
