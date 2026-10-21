@@ -1,6 +1,6 @@
 [project]
 name = "rag-from-scratch"
-version = "0.1.0"
+version = "0.2.0"
 description = "A RAG (retrieval-augmented generation) pipeline built from scratch: llama.cpp, TinyLlama, fixed-size chunking, cosine similarity, a cache and a CLI"
 readme = "README.md"
 authors = [
